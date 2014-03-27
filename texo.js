@@ -15,7 +15,7 @@
 	} 
 	else {
 		// Browser global
-		this.returnExports = factory();
+		this.texo = factory();
 	}
 }(function () {
 	// List constructor (does not require "new")
@@ -28,11 +28,12 @@
 	function eq (a, b) {
 		if (typeof(a) !== "function" || 
 			typeof(b) !== "function" || 
+			(!a.count) ||
 			a.count !== b.count) {
 				return a === b;
 		}
 		for (var i = 0; i < a.count; i++) {
-			if (a(i) !== b(i)) {
+			if (!eq(a(i), b(i))) {
 				return false;
 			}
 		}
