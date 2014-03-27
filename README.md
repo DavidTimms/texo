@@ -6,10 +6,11 @@ Texo provides efficient immutable lists, as an alternative to JavaScript's nativ
 Basic Usage
 -----------
 
-Setup:
+Installation:
 
     npm install texo
 
+Setup (using Node.js or browserify):
 
     var list = require("texo");
 
