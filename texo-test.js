@@ -1,5 +1,5 @@
 var list = require("./texo.js");
-var assert = require("assert");
+var assert = require("better-assert");
 
 function square (x) {
 	return x * x;
@@ -76,7 +76,7 @@ assert(keySorted(1).name === "Dave");
 assert(keySorted(2).name === "Mary");
 
 var evaluated = false;
-var lazy = list(true).map(function (x) {evaluated = x});
+var lazy = list(true).lazyMap(function (x) {evaluated = x});
 assert(evaluated === false);
 // force evaluation of element
 lazy(0);
@@ -90,5 +90,23 @@ for (var i = 0; i < 200; i++) {
 	construction = construction.append(i);
 	assert(construction._depth < 26);
 }
+
+var nums = list.range(10);
+for (var i = 0; i < 10; i++) {
+	assert(nums(i) === i);
+}
+assert(nums.count === 10);
+assert(nums(-1) === 9);
+assert(nums(10) === undefined);
+
+var desc = list.range(7, 2);
+assert(desc.count === 5);
+assert(desc(-2) === 4);
+assert(desc(0) === 7);
+assert(desc(5) === undefined);
+
+var infinite = list.range();
+assert(infinite.count === Infinity);
+assert(infinite(9856) === 9856);
 
 console.log("All tests passed");
