@@ -1,7 +1,7 @@
 {
   "name": "texo",
-  "version": "0.1.0",
-  "description": "A functional, immutable list library",
+  "version": "0.2.1",
+  "description": "A functional, immutable list library for Node and the browser",
   "files": ["texo.js", "README.md"],
   "main": "texo.js",
   "repository": {
