@@ -1,0 +1,26 @@
+{
+  "name": "texo",
+  "version": "0.1.0",
+  "description": "A functional, immutable list library",
+  "files": ["texo.js", "README.md"],
+  "main": "texo.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DavidTimms/texo.git"
+  },
+  "keywords": [
+    "list",
+    "immutable",
+    "functional",
+    "lazy",
+    "array"
+  ],
+  "author": {
+    "name" : "David Timms", 
+    "url" : "http://www.davidtimms.co.uk/"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/DavidTimms/texo/issues"
+  }
+}
