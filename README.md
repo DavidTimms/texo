@@ -62,10 +62,15 @@ Produce a new list by calling func on each item in the list. If a string is pass
 Just like `.map()` but the function is only called when the list item is accessed. This is more efficient than `.map()` for pure functions without side effects.
 
 ### .reduce(initialValue, func)
-Calls func with each item in the list and the previous return value. The initial value is optional.
+Calls func with each item in the list from first to last and the previous return value. The initial value is optional.
 
     list(4, 34, 7, 6).reduce(Math.max); // -> 34
     list(1, 2, 3, 4, 5).reduce(10, function (a, b) { return a + b }); // -> 25
+
+### .reduceRight(initialValue, func)
+Calls func with each item in the list from last to first and the previous return value. The initial value is optional.
+
+    list("a", "b", "c").reduceRight(function (a, b) { return a + b }); // -> "cba"
 
 ### .filter(predicate)
 Calls the predicate function on each item in the list and returns a new list with all the items which returned a true value.
