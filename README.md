@@ -1,18 +1,20 @@
 Texo
 ====
 
-Texo provides efficient immutable lists, as an alternative to JavaScript's native mutable arrays. It makes writing functional JavaScript easier and faster, with a simple object-oriented API. Texo allows features like lazy mapping and efficient concatenation, and it's easy to convert to and from JavaScript Arrays. Every Texo list is a function, so instead of something like `xs[3]`, just write `xs(3)`.
+Texo provides efficient immutable lists, as an alternative to JavaScript's native mutable arrays. It makes writing functional JavaScript easier and faster, with a simple object-oriented API. Texo allows features like lazy mapping and efficient concatenation, and it's easy to convert to and from JavaScript Arrays. Every Texo list is a function, so instead of something like `xs[3]`, just write `xs(3)`. Texo works in all major browsers and in Node.js.
 
 Basic Usage
 -----------
 
-Installation:
+Install using [NPM](http://npmjs.org/) or by downloading the source [here](https://raw.githubusercontent.com/DavidTimms/texo/master/texo.js):
 
     npm install texo
 
-Setup (using Node.js or browserify):
+Setup using [Node.js](http://nodejs.org) or [browserify](http://browserify.org):
 
     var list = require("texo");
+
+Texo can also be used with [AMD](http://requirejs.org/docs/whyamd.html#amd), or a simple script tag, in which case, it creates a global variable `texo` which is the main list constructor function.
 
 Construct a list:
 

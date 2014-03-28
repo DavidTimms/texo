@@ -125,23 +125,41 @@
 		return addMethods(listFunc);
 	}
 
-	// fold the items in the list with an optional initial value
+	// fold the items in the list from left to right with an optional initial value
 	function reduce (initial, func) {
 		var result, i;
 		// initial value provided
 		if (func) {
 			result = initial;
-			for (i = 0; i < this.count; i++) {
-				result = func(result, this(i));
-			}
+			i = 0;
 		}
 		// no initial value provided
 		else {
 			func = initial;
 			result = this(0);
-			for (i = 1; i < this.count; i++) {
-				result = func(result, this(i));
-			}
+			i = 1;
+		}
+		for (; i < this.count; i++) {
+			result = func(result, this(i), i, this);
+		}
+		return result;
+	}
+
+	// fold the items in the list from right to left with an optional initial value
+	function reduceRight (initial, func) {
+		var result, i = this.count - 1;
+		// initial value provided
+		if (func) {
+			result = initial;
+		}
+		// no initial value provided
+		else {
+			func = initial;
+			result = this(i);
+			i -= 1;
+		}
+		for (; i >= 0; i--) {
+			result = func(result, this(i), i, this);
 		}
 		return result;
 	}
@@ -335,6 +353,7 @@
 		listFunc.map = map;
 		listFunc.lazyMap = lazyMap;
 		listFunc.reduce = reduce;
+		listFunc.reduceRight = reduceRight;
 		listFunc.filter = filter;
 		listFunc.concat = concat;
 		listFunc.append = append;
