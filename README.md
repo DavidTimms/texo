@@ -53,9 +53,10 @@ Convert the items of the list to a string with the delimiter str.
     list("a", "b", "c").join(" => "); // -> "a => b => c"
 
 ### .map(func)
-Produce a new list by calling func on each item in the list.
+Produce a new list by calling func on each item in the list. If a string is passed instead of a function, the new list contains that property of every item.
 
     list("23", "43", "x").map(Number); // -> (23, 43, NaN)
+    list({name: "Dave", age: 21}, {name: "Julia", age: 53}).map("name"); // -> ("Dave", "Julia")
 
 ### .lazyMap(func)
 Just like `.map()` but the function is only called when the list item is accessed. This is more efficient than `.map()` for pure functions without side effects.
