@@ -64,7 +64,7 @@ Just like `.map()` but the function is only called when the list item is accesse
 ### .reduce(initialValue, func)
 Calls func with each item in the list from first to last and the previous return value. The initial value is optional.
 
-    list(4, 34, 7, 6).reduce(Math.max); // -> 34
+    list(4, 34, 7, 6).reduce(function (a, b) { return Math.max(a, b) }); // -> 34
     list(1, 2, 3, 4, 5).reduce(10, function (a, b) { return a + b }); // -> 25
 
 ### .reduceRight(initialValue, func)
