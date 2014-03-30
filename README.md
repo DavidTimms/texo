@@ -31,6 +31,11 @@ or a negative index to access from the end of the list.
     var x1 = xs(2);
     var y2 = xs(-1);
 
+Because `.length` is reserved on functions for their number of arguments, texo lists use `.count` to store the number of items in the list.
+
+    var ys = list(45, 67, 34);
+    ys.count; // -> 3
+
 You can test whether two lists are equal using `eq`.
 
 	list.eq(list(1,2,3), list.fromArray([1,2,3])); // -> true
