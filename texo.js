@@ -242,14 +242,24 @@
 	function slice (start, end) {
 		var temp, parent = this, parentCount = this.count;
 		// default value for end
-		if (end === undefined) end = parentCount;
+		if (end === undefined) {
+			end = parentCount;
+		}
+		// count from end of the list for negative indexes
+		else if (end < 0) {
+			end += parentCount;
+		}
+		if (start < 0) start += parentCount;
+
+		// switch arguments if they are the wrong way round
 		if (end < start) {
 			temp = end;
 			end = start;
 			start = temp;
 		}
-		if (start < 0) start += parentCount;
-		if (end < 0) end += parentCount;
+
+		// ensure indexes are within range
+		start = Math.max(start, 0);
 		end = Math.min(end, parentCount);
 
 		function listFunc (i) {
