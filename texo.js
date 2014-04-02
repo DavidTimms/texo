@@ -240,10 +240,18 @@
 
 	// Produce a new list from a subsection of the list
 	function slice (start, end) {
-		if (end === undefined) {
-			end = this.count;
+		var temp, parent = this, parentCount = this.count;
+		// default value for end
+		if (end === undefined) end = parentCount;
+		if (end < start) {
+			temp = end;
+			end = start;
+			start = temp;
 		}
-		var parent = this;
+		if (start < 0) start += parentCount;
+		if (end < 0) end += parentCount;
+		end = Math.min(end, parentCount);
+
 		function listFunc (i) {
 			if (i < 0) i += listFunc.count;
 			var index = i + start;
@@ -259,7 +267,7 @@
 			listFunc._depth -= 1;
 			parent = this._parent;
 			start += this._start;
-			end = this._start + Math.min(end, this.count);
+			end = this._start + end;
 		}
 
 		// store slice details for reslicing 
