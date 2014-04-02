@@ -1090,7 +1090,8 @@ module.exports = function(){
 };
 
 },{}],9:[function(require,module,exports){
-var list = require("../texo.js");
+var list = require("../texo.js"), eq = list.eq;
+// use better-assert in node for informative error messages
 var assert = (typeof window === "undefined") ?
 	require("better-assert") : require("assert");
 
@@ -1149,29 +1150,35 @@ assert(reducedRight === "texo");
 
 assert(xs.toArray().toString() === ([1,2,3,4,5,6]).toString());
 
-assert(list.eq(zs, list(1,2,3,4,5,6,7,8,9)));
-assert(list.eq(appended.flatten(), appended));
+assert(eq(zs, list(1,2,3,4,5,6,7,8,9)));
+assert(eq(appended.flatten(), appended));
 
 var sliced = squared.slice(2, 6);
-assert(list.eq(sliced, list(9,16,25,36)));
+assert(eq(sliced, list(9,16,25,36)));
 assert(sliced(4) === undefined);
 assert(sliced(-1) === 36);
 
 var resliced = sliced.slice(1);
-assert(list.eq(resliced, list(16,25,36)));
+assert(eq(resliced, list(16,25,36)));
 assert(resliced._depth === sliced._depth);
 
+var prefixSlice = list(1,2,3,4,5).slice(0, -1);
+assert(eq(prefixSlice, list(1,2,3,4)));
+
+var switchedArgsSlice = list(1,2,3,4).slice(99, 2);
+assert(eq(switchedArgsSlice, list(3,4)));
+
 var taken = xs.slice(2);
-assert(list.eq(taken, list(3,4,5,6)));
+assert(eq(taken, list(3,4,5,6)));
 
 var filtered = zs.filter(function (x) { return x > 4 });
-assert(list.eq(filtered, list(5,6,7,8,9)));
+assert(eq(filtered, list(5,6,7,8,9)));
 
 var reversed = squared.reverse();
-assert(list.eq(reversed, list(81,64,49,36,25,16,9,4,1)));
+assert(eq(reversed, list(81,64,49,36,25,16,9,4,1)));
 
 var sorted = list(2,45,1,10,6).sort();
-assert(list.eq(sorted, list(1,2,6,10,45)));
+assert(eq(sorted, list(1,2,6,10,45)));
 
 var keySorted = list({name: "Dave"}, {name: "Mary"}, {name: "Alex"}).sort("name");
 assert(keySorted(0).name === "Alex");
@@ -1186,7 +1193,7 @@ lazy(0);
 assert(evaluated === true);
 
 var replaced = xs.replace(0, "first", 3, "middle");
-assert(list.eq(replaced, list("first",2,3,"middle",5,6)));
+assert(eq(replaced, list("first",2,3,"middle",5,6)));
 
 var construction = list();
 for (var i = 0; i < 200; i++) {
@@ -1457,10 +1464,28 @@ console.log("All tests passed");
 
 	// Produce a new list from a subsection of the list
 	function slice (start, end) {
+		var temp, parent = this, parentCount = this.count;
+		// default value for end
 		if (end === undefined) {
-			end = this.count;
+			end = parentCount;
 		}
-		var parent = this;
+		// count from end of the list for negative indexes
+		else if (end < 0) {
+			end += parentCount;
+		}
+		if (start < 0) start += parentCount;
+
+		// switch arguments if they are the wrong way round
+		if (end < start) {
+			temp = end;
+			end = start;
+			start = temp;
+		}
+
+		// ensure indexes are within range
+		start = Math.max(start, 0);
+		end = Math.min(end, parentCount);
+
 		function listFunc (i) {
 			if (i < 0) i += listFunc.count;
 			var index = i + start;
@@ -1476,7 +1501,7 @@ console.log("All tests passed");
 			listFunc._depth -= 1;
 			parent = this._parent;
 			start += this._start;
-			end = this._start + Math.min(end, this.count);
+			end = this._start + end;
 		}
 
 		// store slice details for reslicing 

@@ -1,4 +1,4 @@
-var list = require("../texo.js"), eq = list.eq;
+var list = require("../texo.min.js"), eq = list.eq;
 // use better-assert in node for informative error messages
 var assert = (typeof window === "undefined") ?
 	require("better-assert") : require("assert");
