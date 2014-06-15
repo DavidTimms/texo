@@ -18,72 +18,190 @@
 		this.texo = factory();
 	}
 }(function () {
+	"use strict";
+
 	// List constructor (does not require "new")
-	function list () {
-		var items = arguments;
-		return fromArray(items);
+	function List(args /* ... */) {
+		if (args !== undefined) {
+			var length = arguments.length;
+			var items = new Array(length);
+			for (var i = 0; i < length; i++) {
+				items[i] = arguments[i];
+			}
+			return fromArray(items);
+		}
+		if (this instanceof List) return this;
+		else return emptyList;
 	}
 
-	// test whether two list are equal (shallow equality)
-	function eq (a, b) {
-		if (typeof(a) !== "function" || 
-			typeof(b) !== "function" || 
-			(!a.count) ||
-			a.count !== b.count) {
-				return a === b;
-		}
-		for (var i = 0; i < a.count; i++) {
-			if (!eq(a(i), b(i))) {
-				return false;
+	List.prototype = {
+		constructor: List,
+		length: 0,
+		// default accessor
+		at: function () {},
+		toString: listToString,
+		inspect: listToString,
+		join: function (separator) {
+			separator = separator === undefined ? 
+				"," : 
+				"" + separator;
+			var s = "";
+			var lastIndex = this.length - 1;
+			for (var i = 0; i < lastIndex; i++) {
+				s += this.at(i) + separator;
 			}
-		}
-		return true;
+			return lastIndex >= 0 ?
+				s + this.at(lastIndex) :
+				s;
+		},
+		toArray: function () {
+			var arr = [];
+			var length = this.length;
+			for (var i = 0; i < length; i++) {
+				arr[i] = this.at(i);
+			}
+			return arr;
+		},
+		// Create a version of the list with fast access times
+		flattenTree: function () {
+			return fromArray(this.toArray());
+		},
+		// Produce a new list which is the concatenation of the list and right
+		concat: function (other) {
+			if (other instanceof List) {
+				var left = this.at;
+				var right = other.at;
+				var split = this.length;
+				var length = split + other.length;
+				var depth = Math.max(this._depth, other._depth) + 1;
+
+				var accessor = function (i) {
+					if (i < 0) i += length;
+					return (i < split) ? left(i) : right(i - split);
+				};
+
+				return createList(accessor, length, depth);
+			}
+			else return this.append(other);
+		},
+		// Produce a new list with the item added to the end
+		append: variadic(function (items) {
+			return this.concat(items);
+		}),
+		// Produce a new list with the item added to the end
+		prepend: variadic(function (items) {
+			return items.concat(this);
+		}),
+
+	};
+
+	function listToString() {
+		return "[" + this.join() + "]";
 	}
-	list.eq = eq;
+
+	// test whether two lists are equal
+	function eq(a, b) {
+		if (a instanceof List && b instanceof List) {
+			var length = a.length;
+			if (b.length !== length) return false;
+
+			for (var i = 0; i < length; i++) {
+				if (!eq(a.at(i), b.at(i))) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return a === b;
+	}
+	List.eq = eq;
 
 	// Convert an array to a list
-	function fromArray (items) {
-		function listFunc (i) {
-			if (i < 0) i += listFunc.count;
+	function fromArray(items) {
+		function accessor(i) {
+			if (i < 0) i += items.length;
 			return items[i];
 		}
-		listFunc._depth = 1;
-		listFunc.count = items.length;
-		return addMethods(listFunc);
+		return createList(accessor, items.length, 1);
 	}
-	list.fromArray = function (items) {
+	List.fromArrayUnsafe = fromArray;
+	List.fromArray = function(items) {
+		// defensively clone the array in case of mutation
 		return fromArray(items.slice(0));
 	};
 
-	// Convert a list to an array
-	function toArray () {
-		var items = [];
-		for (var i = 0; i < this.count; i++) {
-			items.push(this(i));
+
+	List.range = function (from, to) {
+		// handle missing arguments
+		if (to === undefined) {
+			if (from === undefined) {
+				to = Infinity;
+			}
+			else {
+				to = from;
+			}
+			from = 0;
 		}
-		return items;
-	}
 
-	// Clone the list to produce an non-nested list
-	function flatten () {
-		return fromArray(this.toArray());
-	}
+		var length = from < to ? to - from : from - to; 
 
-	function listToString () {
-		return "(" + this.join(",") + ")";
-	}
+		function accessor(i) {
+			var num;
+			if (i < 0) i += length;
 
-	function join (delim) {
-		if (this.count === 0) {
-			return "";
+			// ascending range
+			if (from < to) {
+				num = i + from;
+				return (num < to ? num : undefined);
+			}
+			// descending range
+			else {
+				num = from - i;
+				return (num > to ? num : undefined);
+			}
 		}
-		var str = "";
-		for (var i = 0; i < this.count - 1; i++) {
-			str += this(i) + delim;
-		}
-		return str + this(i);
+
+		return createList(accessor, length, 1);
 	}
 
+	function createList(accessor, length, depth) {
+		if (length > 1 && depth > Math.log(length) * 10) {
+			return flattenAccessor(accessor, length);
+		}
+		var list = new List();
+		list.at = accessor;
+		list.length = length;
+		list._depth = depth;
+		return list;
+	}
+
+	function flattenAccessor(accessor, length) {
+		var items = new Array(length);
+		for (var i = 0; i < length; i++) {
+			items[i] = accessor(i);
+		}
+		return fromArray(items);
+	}
+
+	function variadic(func) {
+		var normalParams = func.length - 1;
+		return function () {
+			var args = [];
+			for (var i = 0; i < arguments.length; i++) {
+				args.push(arguments[i]);
+			}
+			var variadicArgs = args.slice(0, normalParams);
+			variadicArgs.push(fromArray(args.slice(normalParams)));
+			return func.apply(this, variadicArgs);
+		}
+	}
+	List.variadic = variadic;
+
+	var emptyList = new List();
+
+	return List;
+
+	/*
 	// Produce a new list by calling func on each item in the list
 	function map (func) {
 		var cache = [];
@@ -200,43 +318,6 @@
 		return addMethods(listFunc);
 	}
 
-	// Produce a new list which is the concatenation of the list and right
-	function concat (right) {
-		var left = this;
-		function listFunc (i) {
-			if (i < 0) i += listFunc.count;
-			return (i < left.count) ? left(i) : right(i - left.count);
-		}
-		listFunc._depth = Math.max(left._depth, right._depth) + 1;
-		listFunc.count = left.count + right.count;
-		return addMethods(listFunc);
-	}
-
-	// Produce a new list with the arguments added to the end of the list
-	function append () {
-		var left = this;
-		var right = arguments;
-		function listFunc (i) {
-			if (i < 0) i += listFunc.count;
-			return (i < left.count) ? left(i) : right[i - left.count];
-		}
-		listFunc._depth = left._depth + 1;
-		listFunc.count = left.count + right.length;
-		return addMethods(listFunc);
-	}
-
-	// Produce a new list with the arguments added to the start of the list
-	function prepend () {
-		var left = arguments;
-		var right = this;
-		function listFunc (i) {
-			if (i < 0) i += listFunc.count;
-			return (i < left.length) ? left[i] : right(i - left.length);
-		}
-		listFunc._depth = right._depth + 1;
-		listFunc.count = left.length + right.count;
-		return addMethods(listFunc);
-	}
 
 	// Produce a new list from a subsection of the list
 	function slice (start, end) {
@@ -317,73 +398,5 @@
 		}
 		return fromArray(this.toArray().sort(sortFunction));
 	}
-
-	function range (from, to) {
-		// handle missing arguments
-		if (to === undefined) {
-			if (from === undefined) {
-				to = Infinity;
-			}
-			else {
-				to = from;
-			}
-			from = 0;
-		}
-
-		function listFunc (i) {
-			var num;
-			if (i < 0 && listFunc.count !== Infinity) i += listFunc.count;
-
-			// ascending range
-			if (from < to) {
-				num = i + from;
-				return (num < to ? num : undefined);
-			}
-			// descending range
-			else {
-				num = from - i;
-				return (num > to ? num : undefined);
-			}
-		}
-		listFunc._depth = 1;
-		listFunc.count = (from < to ? to - from : from - to); 
-		return addMethods(listFunc);
-	}
-	list.range = range;
-
-	// Add the methods to the function representing a new list.
-	// As each list is a function object, prototypical inheritance
-	// cannot be used to add the methods
-	function addMethods (listFunc) {
-		listFunc.toArray = toArray;
-		listFunc.flatten = flatten;
-
-		// flatten the list once it becomes too deep
-		// To maintain O(log(n)) access
-		var count = listFunc.count;
-		if (count > 1 && listFunc._depth > Math.log(count) * 10) {
-			listFunc = listFunc.flatten();
-			listFunc.toArray = toArray;
-			listFunc.flatten = flatten;
-		}
-
-		listFunc.join = join;
-		listFunc.inspect = listFunc.toString = listToString;
-		listFunc.map = map;
-		listFunc.lazyMap = lazyMap;
-		listFunc.reduce = reduce;
-		listFunc.reduceRight = reduceRight;
-		listFunc.filter = filter;
-		listFunc.concat = concat;
-		listFunc.append = append;
-		listFunc.prepend = prepend;
-		listFunc.slice = slice;
-		listFunc.replace = replace;
-		listFunc.reverse = reverse;
-		listFunc.sort = sort;
-		listFunc.type = "list";
-		return listFunc;
-	}
-	
-	return list;
+	*/
 }));
