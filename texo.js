@@ -98,7 +98,7 @@
 		var count = this.count;
 		var resultArray = Array(count);
 		for (var i = 0; i < count; i++) {
-			resultArray[i] = func(this(i));
+			resultArray[i] = func(this(i), i, this);
 		}
 		return fromArray(resultArray);
 	}
@@ -118,7 +118,7 @@
 			if (i >= parent.count || i < 0) {
 				return undefined;
 			}
-			return func(parent(i));
+			return func(parent(i), i, parent);
 		}
 		listFunc._depth = parent._depth + 1;
 		listFunc.count = parent.count;
@@ -170,7 +170,7 @@
 		var item;
 		for (var i = 0; i < this.count; i++) {
 			item = this(i);
-			if (predicate(item)) {
+			if (predicate(item, i, this)) {
 				items.push(item);
 			}
 		}
@@ -359,8 +359,9 @@
 		listFunc.flatten = flatten;
 
 		// flatten the list once it becomes too deep
-		// To maintain constant time access
-		if (listFunc._depth > 25) {
+		// To maintain O(log(n)) access
+		var count = listFunc.count;
+		if (count > 1 && listFunc._depth > Math.log(count) * 10) {
 			listFunc = listFunc.flatten();
 			listFunc.toArray = toArray;
 			listFunc.flatten = flatten;
@@ -380,6 +381,7 @@
 		listFunc.replace = replace;
 		listFunc.reverse = reverse;
 		listFunc.sort = sort;
+		listFunc.type = "list";
 		return listFunc;
 	}
 	

@@ -32,7 +32,6 @@ assert(appended(5) === 36);
 assert(appended(-2) === "foo");
 assert(appended(10) === "bar");
 
-
 var prepended = xs.prepend("foo", "bar");
 assert(prepended(0) === "foo");
 assert(prepended(1) === "bar");
@@ -106,7 +105,8 @@ assert(eq(replaced, list("first",2,3,"middle",5,6)));
 var construction = list();
 for (var i = 0; i < 200; i++) {
 	construction = construction.append(i);
-	assert(construction._depth < 26);
+	assert(construction.count <= 1 || 
+		construction._depth <= Math.log(construction.count) * 10);
 }
 
 var nums = list.range(10);
