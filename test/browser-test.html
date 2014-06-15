@@ -5,6 +5,17 @@
 	<title>Texo Browser Test</title>
 </head>
 <body>
-	<script type="text/javascript" src="./browser-test.js"></script>
+	<script src="../texo.js"></script>
+	<script>
+		function require(module) {
+			if (module === "../texo.js") {
+				return Texo;
+			}
+			else {
+				throw Error("require() not supported in the browser.");
+			}
+		}
+	</script>
+	<script src="./unit-tests.js"></script>
 </body>
 </html>

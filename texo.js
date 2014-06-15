@@ -12,10 +12,10 @@
 	else if (typeof exports === 'object') {
 		// Node
 		module.exports = factory();
-	} 
+	}
 	else {
 		// Browser global
-		this.texo = factory();
+		this.Texo = factory();
 	}
 }(function () {
 	"use strict";
@@ -37,6 +37,7 @@
 	List.prototype = {
 		constructor: List,
 		length: 0,
+		_depth: 0,
 		// default accessor
 		at: function () {},
 		toString: listToString,
@@ -107,6 +108,25 @@
 				if (i < 0) i += length;
 				return i === index ?
 					newValue :
+					parent(i);
+			}
+
+			return createList(accessor, length, this._depth + 1);
+		},
+
+		// Produce a list with the new value inserted at the specified index
+		insertAt: function (index, newValue) {
+			if (index < 0) index += this.length;
+			var parent = this.at;
+			var length = Math.max(this.length, index) + 1;
+
+			function accessor(i) {
+				if (i < 0) i += length;
+				if (i === index) {
+					return newValue;
+				}
+				return i > index ?
+					parent(i - 1) :
 					parent(i);
 			}
 
@@ -194,6 +214,18 @@
 				};
 			}
 			return fromArray(this.toArray().sort(sortFunction));
+		},
+
+		// Produce a new list by calling the callback on each item in the list
+		forEach: function (callback) {
+			callback = createMapping(callback);
+
+			var length = this.length;
+			var accessor = this.at;
+			for (var i = 0; i < length; i++) {
+				callback(accessor(i), i, this);
+			}
+			return this;
 		},
 
 		// Produce a new list by calling the callback on each item in the list
@@ -360,7 +392,7 @@
 	}
 
 	function createList(accessor, length, depth) {
-		if (length > 1 && depth > Math.log(length) * 10) {
+		if (length > 1 && depth > Math.log(length) * 1.5) {
 			return flattenAccessor(accessor, length);
 		}
 		var list = new List();
@@ -392,7 +424,10 @@
 		// treat string/number arguments as pluck operations 
 		return typeof(mapping) === "function" ?
 			mapping :
-			function (obj) { return obj[mapping] };
+			function (obj) {
+				var prop = obj[mapping];
+				return typeof(prop) === "function" ? prop() : prop;
+			};
 	}
 
 	function variadic(func) {

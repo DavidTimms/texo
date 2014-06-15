@@ -3,6 +3,14 @@ var range = List.range;
 
 // HELPERS
 
+// print to the page if running in a browser
+var log = typeof(window) === "undefined" ?
+	console.log.bind(console) :
+	function printToPage() {
+		var s = Array.prototype.join.call(arguments, " ");
+		document.body.innerHTML += s;
+	};
+
 var allPassed = true;
 var testNumber = 0;
 function test(res, expected) {
@@ -20,9 +28,9 @@ function test(res, expected) {
 		return true;
 	else {
 		allPassed = false;
-		console.log("test", num, "failed");
-		console.log("expected:", expected);
-		console.log("found:", res);
+		log("test", num, "failed");
+		log("expected:", expected);
+		log("found:", res);
 	}
 }
 
@@ -32,6 +40,8 @@ function same(list, arr) {
 }
 
 // TESTS
+
+var a = Point(3, 4), b = Point(2, 6), c = Point(9, 1);
 
 // basic operation
 test(List().at(0), undefined);
@@ -95,6 +105,12 @@ test(List("a", "b", "c").replace(-1, "q"), ["a", "b", "q"]);
 test(List("foo", "bar").replace(0, 1).replace(1, 2), [1, 2]);
 test(range().replace(952).at(952), undefined);
 
+// insert
+test(List().insertAt(1, "foo"), [undefined, "foo"]);
+test(range(4).insertAt(2, 99), [0, 1, 99, 2, 3]);
+test(List().insertAt(0, a).insertAt(0, b).insertAt(0, c), [c, b, a]);
+test(range(2, 6).insertAt(-2, 888), [2, 3, 888, 4, 5]);
+
 // slice
 test(range(5).slice(), range(5));
 test(range(5).slice(2), [2, 3, 4]);
@@ -114,8 +130,14 @@ test(List("foo", "bar", "buzz").slice(1).reverse(), ["buzz", "bar"]);
 // sort
 test(range(10).sort(), range(10));
 test(range(4).sort(backwards), range(4).reverse());
-var a = Point(3, 4), b = Point(2, 6), c = Point(9, 1);
 test(List(a, b, c).sort("x"), [b, a, c]);
+
+// forEach
+var total = 0;
+function sideEffectSum(value, i) {
+	total += value + i;
+}
+test((range(10).forEach(sideEffectSum), total), (1+2+3+4+5+6+7+8+9)*2);
 
 // map
 test(List().map(square), []);
@@ -153,7 +175,7 @@ var dropFirst = List.variadic(function (head, tail) {
 test(dropFirst(1, 2, 3, 4), List(2, 3, 4));
 
 
-if (allPassed) console.log("All tests passed");
+if (allPassed) log("All tests passed");
 
 function backwards(a, b) {
 	return a > b ? -1 : (a == b ? 0 : 1);
