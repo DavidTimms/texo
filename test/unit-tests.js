@@ -63,10 +63,6 @@ test(arr[0], "a");
 test(arr[1], "b");
 test(arr[2], undefined);
 
-// List.eq
-test(new List(), List());
-test(List(1, 2, 3), List(1, 2, 3));
-
 // flattenTree
 var list = List("foo", "bar", "buzz");
 test(list.flattenTree(), list);
@@ -164,6 +160,15 @@ test(List(1, 0, null, 4, false, true, undefined).filter(), [1, 0, 4, true]);
 test(List(34, 23, 0, null, 9, undefined).filter(Boolean), [34, 23, 9]);
 test(List(false, "3", "0").filter(Number), ["3"]);
 test(range(40).filter(lessThan(20)), range(20));
+
+// List.eq
+test(new List(), List());
+test(List(1, 2, 3), List(1, 2, 3));
+
+// List.of
+test(List.of(5, "a"), ["a", "a", "a", "a", "a"]);
+test(List.of(3, 55), [55, 55, 55]);
+test(List.of(Infinity, "foo").slice(0, 3), ["foo", "foo", "foo"]);
 
 //List.variadic
 var vsum = List.variadic(sum);

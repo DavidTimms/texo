@@ -391,8 +391,31 @@
 		return createList(accessor, length, 1);
 	}
 
+	List.of = function (length, value) {
+		function accessor(i) {
+			return i < length && i > -length ?
+				value :
+				undefined;
+		}
+		return createList(accessor, length, 1);
+	}
+
+	function variadic(func) {
+		var normalParams = func.length - 1;
+		return function () {
+			var args = [];
+			for (var i = 0; i < arguments.length; i++) {
+				args.push(arguments[i]);
+			}
+			var variadicArgs = args.slice(0, normalParams);
+			variadicArgs.push(fromArray(args.slice(normalParams)));
+			return func.apply(this, variadicArgs);
+		}
+	}
+	List.variadic = variadic;
+
 	function createList(accessor, length, depth) {
-		if (length > 1 && depth > Math.log(length) * 1.5) {
+		if (length > 1 && depth > Math.log(length) * 2) {
 			return flattenAccessor(accessor, length);
 		}
 		var list = new List();
@@ -429,20 +452,6 @@
 				return typeof(prop) === "function" ? prop() : prop;
 			};
 	}
-
-	function variadic(func) {
-		var normalParams = func.length - 1;
-		return function () {
-			var args = [];
-			for (var i = 0; i < arguments.length; i++) {
-				args.push(arguments[i]);
-			}
-			var variadicArgs = args.slice(0, normalParams);
-			variadicArgs.push(fromArray(args.slice(normalParams)));
-			return func.apply(this, variadicArgs);
-		}
-	}
-	List.variadic = variadic;
 
 	function inRange(min, max, value) {
 		if (value < min) return min;
