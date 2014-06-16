@@ -133,6 +133,24 @@
 			return createList(accessor, length, this._depth + 1);
 		},
 
+		// Produce a list with the new value inserted at the specified index
+		removeAt: function (index) {
+			if (index < 0) index += this.length;
+			var parent = this.at;
+			var length = this.length - 1;
+
+			if (length < 1) return emptyList;
+
+			function accessor(i) {
+				if (i < 0) i += length;
+				return i > index ?
+					parent(i + 1) :
+					parent(i);
+			}
+
+			return createList(accessor, length, this._depth + 1);
+		},
+
 		// Produce a new list from a subsection of the list
 		slice: function (start, end) {
 			var parent = this.at;

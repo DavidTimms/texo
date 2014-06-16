@@ -101,11 +101,14 @@ test(List("a", "b", "c").replace(-1, "q"), ["a", "b", "q"]);
 test(List("foo", "bar").replace(0, 1).replace(1, 2), [1, 2]);
 test(range().replace(952).at(952), undefined);
 
-// insert
+// insertAt
 test(List().insertAt(1, "foo"), [undefined, "foo"]);
 test(range(4).insertAt(2, 99), [0, 1, 99, 2, 3]);
 test(List().insertAt(0, a).insertAt(0, b).insertAt(0, c), [c, b, a]);
 test(range(2, 6).insertAt(-2, 888), [2, 3, 888, 4, 5]);
+
+// removeAt
+test(List().removeAt(4), []);
 
 // slice
 test(range(5).slice(), range(5));
