@@ -118,6 +118,11 @@ test(List().slice(20, 50), List());
 test(range(8).slice(2).slice(0, -2).slice(1), [3, 4, 5]);
 test(range(5).slice(0, 2).slice(0, 4), [0, 1]);
 
+// first and rest
+test(range(2, 10).first(), 2);
+test(List(a, b, c).rest(), [b, c]);
+test(range(3).rest().prepend(range(3).first()), range(3));
+
 // reverse
 test(range(4).reverse(), [3, 2, 1, 0]);
 test(range(100).reverse().reverse(), range(100));

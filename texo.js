@@ -190,6 +190,14 @@
 			return createList(accessor, length, depth);
 		},
 
+		rest: function () {
+			return this.slice(1);
+		},
+
+		first: function () {
+			return this.at(0);
+		},
+
 		// Produce a new list which is the reverse of the list
 		reverse: function () {
 			var parent = this.at;
