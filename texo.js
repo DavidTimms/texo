@@ -143,7 +143,7 @@
 
 			function accessor(i) {
 				if (i < 0) i += length;
-				return i > index ?
+				return i >= index ?
 					parent(i + 1) :
 					parent(i);
 			}
@@ -266,6 +266,7 @@
 			}
 			return fromArray(resultArray);
 		},
+
 		// Produce a new list which will call the 
 		// callback on the item when it is accessed
 		lazyMap: function (callback) {
@@ -346,7 +347,74 @@
 				}
 			}
 			return fromArray(filtered);
-		}
+		},
+
+		// test whether every element passes the predicate function
+		every: function (predicate) {
+			predicate = predicate || defaultFilter;
+			var parent = this.at;
+			var length = this.length;
+			for (var i = 0; i < length; i++) {
+				if (!predicate(parent(i), i, this)) {
+					return false;
+				}
+			}
+			return true;
+		},
+
+		// test whether any element passes the predicate function
+		some: function (predicate) {
+			predicate = predicate || defaultFilter;
+			var parent = this.at;
+			var length = this.length;
+			for (var i = 0; i < length; i++) {
+				if (predicate(parent(i), i, this)) {
+					return true;
+				}
+			}
+			return false;
+		},
+
+		// return the index of the first element equal to the value
+		indexOf: function (needle, start) {
+			var length = this.length;
+			var parent = this.at;
+			if (start !== undefined) {
+				while (start < 0) {
+					start += length;
+				}
+			}
+			else start = 0;
+
+			for (var i = start; i < length; i++) {
+				if (eq(parent(i), needle)) {
+					return i;
+				}
+			}
+
+			return -1;
+		},
+
+		// return the index of the last element equal to the value
+		lastIndexOf: function (needle, start) {
+			var length = this.length;
+			var parent = this.at;
+			if (start !== undefined) {
+				while (start < 0) {
+					start += length;
+				}
+				start = Math.min(start, length - 1);
+			}
+			else start = length - 1;
+
+			for (var i = start; i >= 0; i--) {
+				if (eq(parent(i), needle)) {
+					return i;
+				}
+			}
+
+			return -1;
+		},
 	};
 
 	function listToString() {
@@ -359,10 +427,22 @@
 			var length = a.length;
 			if (b.length !== length) return false;
 
+			if (a.at === b.at) return true;
+
 			for (var i = 0; i < length; i++) {
 				if (!eq(a.at(i), b.at(i))) {
 					return false;
 				}
+			}
+			// If they are equal, share a single 
+			// accessor between both instances
+			if (a._depth > b._depth) {
+				a.at = b.at;
+				a._depth = b._depth;
+			}
+			else {
+				b.at = a.at;
+				b._depth = a._depth;
 			}
 			return true;
 		}
@@ -378,8 +458,8 @@
 		}
 		return createList(accessor, items.length, 1);
 	}
-	List.fromArrayUnsafe = fromArray;
-	List.fromArray = function(items) {
+	List.fromUnsafe = fromArray;
+	List.from = function(items) {
 		// defensively clone the array in case of mutation
 		return fromArray(items.slice(0));
 	};
@@ -426,6 +506,14 @@
 		return createList(accessor, length, 1);
 	}
 
+	List.keys = function (obj) {
+		var keysArray = [];
+		for (var key in obj) if (obj.hasOwnProperty(key)) {
+			keysArray.push(key);
+		}
+		return fromArray(keysArray);
+	}
+
 	function variadic(func) {
 		var normalParams = func.length - 1;
 		return function () {
@@ -439,6 +527,10 @@
 		}
 	}
 	List.variadic = variadic;
+
+	// constant for more readable checking of the 
+	// result of indexOf
+	List.notFound = -1;
 
 	function createList(accessor, length, depth) {
 		if (length > 1 && depth > Math.log(length) * 2) {

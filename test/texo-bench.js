@@ -2,7 +2,7 @@ var List = require("../texo.js");
 
 
 var testArray = range(1000000);
-var testList = List.fromArray(testArray);
+var testList = List.from(testArray);
 
 //// run once for JIT warmup
 sumArrayRA(testArray);

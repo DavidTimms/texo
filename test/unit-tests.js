@@ -109,6 +109,9 @@ test(range(2, 6).insertAt(-2, 888), [2, 3, 888, 4, 5]);
 
 // removeAt
 test(List().removeAt(4), []);
+test(range(5).removeAt(0), [1, 2, 3, 4]);
+test(range(4, 8).removeAt(2).removeAt(2), [4, 5]);
+test(range(20).insertAt(13, 66).removeAt(13), range(20));
 
 // slice
 test(range(5).slice(), range(5));
@@ -169,9 +172,49 @@ test(List(34, 23, 0, null, 9, undefined).filter(Boolean), [34, 23, 9]);
 test(List(false, "3", "0").filter(Number), ["3"]);
 test(range(40).filter(lessThan(20)), range(20));
 
+// every
+test(List().every(), true);
+test(List(1, 5, 3).every(lessThan(6)), true);
+test(range(10).every(lessThan(3)), false);
+test(range().every(lessThan(99)), false);
+test(range(5).every(isAscending), true);
+test(range(5).insertAt(2, 8).every(isAscending), false);
+test(List(false).every(), false);
+test(List(true, 34, 0).every(), true);
+
+// some
+test(List().some(), false);
+test(List(3, 8, 9).some(lessThan(4)), true);
+test(List(78, 45 ,99).some(lessThan(30)), false);
+test(List(false, null, undefined).some(), false);
+test(List(false, null, undefined, 1).some(), true);
+
+// indexOf
+test(List().indexOf(6), List.notFound);
+test(range(10).indexOf(3), 3);
+test(range(5).concat(range(5)).indexOf(2, 3), 7);
+test(List(a, b, c).indexOf(a), 0);
+test(List(a, b, c).indexOf(88), -1);
+test(range(4).map(function (i) { return range(i) }).indexOf(range(2)), 2);
+
+
+// lastIndexOf
+test(List().lastIndexOf(a), List.notFound);
+test(range(10).lastIndexOf(6), 6);
+test(range(5).concat(range(5)).lastIndexOf(0, 4), 0);
+test(List(a, b, c, a, c, b).lastIndexOf(c), 4);
+test(List(a, b, c).lastIndexOf(33), -1);
+test(range(4).map(function (i) { return range(i) }).lastIndexOf(range(3)), 3);
+
+
+
 // List.eq
 test(new List(), List());
 test(List(1, 2, 3), List(1, 2, 3));
+var xs = List(a, b, c), ys = List(a, b, c);
+test(xs.at !== ys.at);
+test(xs, ys);
+test(xs.at === ys.at);
 
 // List.of
 test(List.of(5, "a"), ["a", "a", "a", "a", "a"]);
@@ -187,8 +230,11 @@ var dropFirst = List.variadic(function (head, tail) {
 });
 test(dropFirst(1, 2, 3, 4), List(2, 3, 4));
 
+// List.keys
+test(List.keys(Point(4, 3)), ["x", "y"]);
 
-if (allPassed) log("All tests passed");
+
+if (allPassed) log("All", testNumber, "tests passed");
 
 function backwards(a, b) {
 	return a > b ? -1 : (a == b ? 0 : 1);
@@ -238,4 +284,8 @@ function lessThan(max) {
 	return function (value) {
 		return value < max;
 	}
+}
+
+function isAscending(value, i, list) {
+	return i < 1 || value >= list.at(i - 1);
 }
