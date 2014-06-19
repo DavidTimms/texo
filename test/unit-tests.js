@@ -41,7 +41,18 @@ function same(list, arr) {
 
 // TESTS
 
-var a = Point(3, 4), b = Point(2, 6), c = Point(9, 1);
+// an example data type
+function Point(x, y) {
+	this.x = x;
+	this.y = y;
+}
+Point.prototype.toString = function () {
+	return "(" + this.x + "," + this.y + ")";
+}
+Point.prototype.distanceTo = function (p2) {
+	return Math.sqrt(Math.pow(this.x - p2.x, 2) + Math.pow(this.y - p2.y, 2));
+}
+var a = new Point(3, 4), b = new Point(2, 6), c = new Point(9, 1);
 
 // basic operation
 test(List().at(0), undefined);
@@ -124,10 +135,12 @@ test(List().slice(20, 50), List());
 test(range(8).slice(2).slice(0, -2).slice(1), [3, 4, 5]);
 test(range(5).slice(0, 2).slice(0, 4), [0, 1]);
 
-// first and rest
+// first, rest and last
 test(range(2, 10).first(), 2);
 test(List(a, b, c).rest(), [b, c]);
 test(range(3).rest().prepend(range(3).first()), range(3));
+test(range(10).last(), range(10).at(-1));
+test(range(10).append(3).last(), 3);
 
 // reverse
 test(range(4).reverse(), [3, 2, 1, 0]);
@@ -157,6 +170,16 @@ test(List().lazyMap(square), []);
 test(range(5).lazyMap(square), range(5).map(square));
 test(List("foo","bar","baz").lazyMap(exclaim), ["foo!","bar!","baz!"]);
 test(List(a, b, c).lazyMap("y"), [4, 6, 1]);
+
+// pluck
+test(List().pluck("key"), []);
+test(List(a, b, c).pluck("x"), [3, 2, 9]);
+test(List(c, b, 6).pluck("y"), [1, 6, undefined]);
+
+// invoke
+test(List(a, b, c).invoke("toString"), ["(3,4)", "(2,6)", "(9,1)"]);
+test(List(c, b, a).invoke("distanceTo", new Point(0, 0)), 
+	[c, b, a].map(function (p) { return p.distanceTo(new Point(0, 0))}));
 
 // reduce and reduceRight
 test(List().reduce(55, product), 55);
@@ -231,17 +254,13 @@ var dropFirst = List.variadic(function (head, tail) {
 test(dropFirst(1, 2, 3, 4), List(2, 3, 4));
 
 // List.keys
-test(List.keys(Point(4, 3)), ["x", "y"]);
+test(List.keys(new Point(4, 3)), ["x", "y"]);
 
 
 if (allPassed) log("All", testNumber, "tests passed");
 
 function backwards(a, b) {
 	return a > b ? -1 : (a == b ? 0 : 1);
-}
-
-function Point(x, y) {
-	return {x: x, y: y};
 }
 
 function square(x) {

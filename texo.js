@@ -216,6 +216,10 @@
 			return this.at(0);
 		},
 
+		last: function () {
+			return this.at(-1);
+		},
+
 		// Produce a new list which is the reverse of the list
 		reverse: function () {
 			var parent = this.at;
@@ -284,6 +288,22 @@
 			}
 
 			return createList(accessor, length, this._depth + 1);
+		},
+
+		pluck: function (key) {
+			return this.map(function (obj) {
+				return obj[key];
+			});
+		},
+
+		invoke: function (method) {
+			var otherArgs = [];
+			for (var i = 1; i < arguments.length; i++) {
+				otherArgs.push(arguments[i]);
+			}
+			return this.map(function (obj) {
+				return obj[method].apply(obj, otherArgs);
+			});
 		},
 
 		// fold the items in the list from left to right with an optional initial value
