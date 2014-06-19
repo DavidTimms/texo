@@ -152,12 +152,14 @@ test(range(10).sort(), range(10));
 test(range(4).sort(backwards), range(4).reverse());
 test(List(a, b, c).sort("x"), [b, a, c]);
 
-// forEach
+// forEach and forEachRight
 var total = 0;
 function sideEffectSum(value, i) {
 	total += value + i;
 }
 test((range(10).forEach(sideEffectSum), total), (1+2+3+4+5+6+7+8+9)*2);
+total = 0;
+test((range(6).forEachRight(sideEffectSum), total), (1+2+3+4+5)*2);
 
 // map
 test(List().map(square), []);
@@ -180,6 +182,12 @@ test(List(c, b, 6).pluck("y"), [1, 6, undefined]);
 test(List(a, b, c).invoke("toString"), ["(3,4)", "(2,6)", "(9,1)"]);
 test(List(c, b, a).invoke("distanceTo", new Point(0, 0)), 
 	[c, b, a].map(function (p) { return p.distanceTo(new Point(0, 0))}));
+
+// flatMap
+test(List().flatMap(square), []);
+test(range(5).flatMap(toRange), [0, 0, 1, 0, 1, 2, 0, 1, 2, 3]);
+test(range(6).flatMap(square), [0, 1, 4, 9, 16, 25]);
+test(List(4, 6, null, 88, false).flatMap(flatMapFilter), [4, 6, 88]);
 
 // reduce and reduceRight
 test(List().reduce(55, product), 55);
@@ -229,7 +237,35 @@ test(List(a, b, c, a, c, b).lastIndexOf(c), 4);
 test(List(a, b, c).lastIndexOf(33), -1);
 test(range(4).map(function (i) { return range(i) }).lastIndexOf(range(3)), 3);
 
+// contains
+test(List().contains(undefined), false);
+test(List(a, b, c).contains(a), true);
+test(List(range(7), range(9)).contains(range(9)), true);
+test(List(range(7), range(9)).contains(range(8)), false);
 
+// repeat
+test(List().repeat(10), []);
+test(range(3).repeat(2), [0, 1, 2, 0, 1, 2]);
+test(List(a, b, c).repeat(1), [a, b, c]);
+test(range(5).repeat().length, Infinity);
+test(range(13).repeat().at(999), 999 % 13);
+
+// min and max
+test(List().min(), Infinity);
+test(range(44, 99).min(), 44);
+test(List(a, b, c).min("y"), 1);
+test(List().max(), -Infinity);
+test(range(23, 87).max(), 86);
+test(List(c, b, a).max("x"), 9);
+
+// sum and product
+test(List().sum(), 0);
+test(range(6).sum(), 15);
+test(List(a, b, c).sum("x"), 14);
+test(List().product(), 1);
+test(range(6).product(), 0);
+test(range(1, 6).product(), 120);
+test(List(b, c, a).product("y"), 24);
 
 // List.eq
 test(new List(), List());
@@ -253,9 +289,22 @@ var dropFirst = List.variadic(function (head, tail) {
 });
 test(dropFirst(1, 2, 3, 4), List(2, 3, 4));
 
+// List.apply
+test(List.apply(List.variadic(identity), range(5)), range(5));
+test(List.apply(List.variadic(identity), null, range(66)), range(66));
+test(List.apply(getThis, a, List()), a);
+test(List.apply(Math.max, null, [9, 2, 6, 0]), 9);
+test(List.apply(Math.min, null, [9, 2, 6, 0]), 0);
+
 // List.keys
 test(List.keys(new Point(4, 3)), ["x", "y"]);
+test(List.keys({a: 1, b: 2, "foo bar": 3}), ["a", "b", "foo bar"]);
 
+// List.combine
+test(List.combine(List(a, b, c), range(2, 5), "foo", function (p, val, foo) {
+	return foo + val + ": " + (p.x + p.y);
+}), ["foo2: 7", "foo3: 8", "foo4: 10"]);
+test(List.combine(range(4), [8, 0, 2, 1], Math.max), [8, 1, 2, 3]);
 
 if (allPassed) log("All", testNumber, "tests passed");
 
@@ -283,6 +332,10 @@ function product(a, b) {
 	return a * b;
 }
 
+function identity(a) {
+	return a;
+}
+
 function sumXs(total, b) {
 	return total + b.x;
 }
@@ -307,4 +360,16 @@ function lessThan(max) {
 
 function isAscending(value, i, list) {
 	return i < 1 || value >= list.at(i - 1);
+}
+
+function getThis() {
+	return this;
+}
+
+function toRange(n) {
+	return range(n);
+}
+
+function flatMapFilter(value) {
+	return value ? List(value) : List();
 }

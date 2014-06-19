@@ -237,7 +237,7 @@
 		// based on the sort function
 		sort: function (sortFunction) {
 			sortFunction = sortFunction || defaultSort;
-			if (typeof(sortFunction) === "string") {
+			if (typeof(sortFunction) !== "function") {
 				var key = sortFunction;
 				sortFunction = function (a, b) {
 					return defaultSort(a[key], b[key]);
@@ -246,13 +246,22 @@
 			return fromArray(this.toArray().sort(sortFunction));
 		},
 
-		// Produce a new list by calling the callback on each item in the list
 		forEach: function (callback) {
 			callback = createMapping(callback);
 
 			var length = this.length;
 			var accessor = this.at;
 			for (var i = 0; i < length; i++) {
+				callback(accessor(i), i, this);
+			}
+			return this;
+		},
+
+		forEachRight: function (callback) {
+			callback = createMapping(callback);
+
+			var accessor = this.at;
+			for (var i = this.length - 1; i >= 0; i--) {
 				callback(accessor(i), i, this);
 			}
 			return this;
@@ -302,8 +311,22 @@
 				otherArgs.push(arguments[i]);
 			}
 			return this.map(function (obj) {
-				return obj[method].apply(obj, otherArgs);
+				return apply(obj[method], obj, otherArgs);
 			});
+		},
+
+		// like map, concatenates the results of calling the
+		// function on each item in the list
+		flatMap: function (callback) {
+			callback = createMapping(callback);
+
+			var parentLength = this.length;
+			var parent = this.at;
+			var results = emptyList;
+			for (var i = 0; i < parentLength; i++) {
+				results = results.concat(callback(parent(i), i, this));
+			}
+			return results;
 		},
 
 		// fold the items in the list from left to right with an optional initial value
@@ -435,6 +458,49 @@
 
 			return -1;
 		},
+
+		contains: function (needle, start) {
+			return this.indexOf(needle, start) > -1;
+		},
+
+		repeat: function (times) {
+			var parent = this.at;
+			var parentLength = this.length;
+			var length = times === undefined ? 
+				Infinity : 
+				parentLength * times;
+
+			function accessor(i) {
+				if (i < 0) i += parentLength;
+				return i >= length || i < 0 ?
+					undefined :
+					parent(i % parentLength);
+			}
+
+			return createList(accessor, length, this._depth + 1);
+		},
+
+		min: reduceMethod(Infinity, function (a, b) {
+			return a < b ? a : b;
+		}),
+
+		max: reduceMethod(-Infinity, function (a, b) {
+			return a > b ? a : b;
+		}),
+
+		sum: reduceMethod(0, function (a, b) {
+			return +a + +b;
+		}),
+
+		product: reduceMethod(1, function (a, b) {
+			return a * b;
+		}),
+
+		flatten: notYetImplemented,
+		shuffle: notYetImplemented,
+		sample: notYetImplemented,
+		reject: notYetImplemented,
+		countBy: notYetImplemented,
 	};
 
 	function listToString() {
@@ -543,10 +609,36 @@
 			}
 			var variadicArgs = args.slice(0, normalParams);
 			variadicArgs.push(fromArray(args.slice(normalParams)));
-			return func.apply(this, variadicArgs);
+			return apply(func, this, variadicArgs);
 		}
 	}
 	List.variadic = variadic;
+
+	// map a function over the values of multiple lists
+	List.combine = variadic(function (args) {
+		var callback = args.last();
+
+		// map arguments to lists
+		var argLists = args.slice(0, -1).map(function (arg) {
+			if (arg instanceof List) return arg;
+			if (arg instanceof Array) return fromArray(arg);
+			return List.of(Infinity, arg);
+		});
+
+		// find the length of the longest input list
+		var length = argLists.reduce(0, function (largest, argList) {
+			return argList.length < Infinity && argList.length > largest ?
+				argList.length :
+				largest;
+		});
+
+		var resultArray = Array(length);
+		for (var i = 0; i < length; i++) {
+			// call with the ith element from each argument list
+			resultArray[i] = apply(callback, argLists.invoke("at", i));
+		}
+		return fromArray(resultArray);
+	});
 
 	// constant for more readable checking of the 
 	// result of indexOf
@@ -595,6 +687,58 @@
 		if (value < min) return min;
 		if (value > max) return max;
 		return value;
+	}
+
+	function reduceMethod(init, reducer) {
+		return function (key) {
+			var items = key ? this.lazyMap(key) : this;
+			return items.reduce(init, reducer);
+		}
+	}
+
+	// Apply a list of argument to a function
+	// thisArg is optional
+	List.apply = apply;
+	function apply(func, thisArg, args) {
+		// move arguments if thisArg was omitted
+		if (args === undefined) {
+			args = thisArg;
+			thisArg = null;
+		}
+		// convert array to a list
+		if (args instanceof Array) args = fromArray(args);
+
+		switch (args.length) {
+			case 0: return func.call(thisArg);
+			case 1: return func.call(thisArg, args.at(0));
+			case 2: return func.call(thisArg, args.at(0), args.at(1));
+			case 3: return func.call(thisArg, args.at(0), args.at(1), args.at(2));
+			case 4: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
+				args.at(3));
+			case 5: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
+				args.at(3), args.at(4));
+			case 6: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
+				args.at(3), args.at(4), args.at(5));
+			case 7: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
+				args.at(3), args.at(4), args.at(5), args.at(6));
+			case 8: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
+				args.at(3), args.at(4), args.at(5), args.at(6), args.at(7));
+			default: return applyLarge(func, thisArg, args);
+		}
+	}
+
+	// a slow version of apply which works on lists of any length
+	// by creating a function using code generation
+	function applyLarge(func, thisArg, args) {
+		var applier = new Function("func, thisArg, args", 
+			"return func.call(thisArg, " + 
+			args.map(function (_, i) { return "args.at(" + i + ")" }).join(", ") +
+			"); ");
+		return applier(func, thisArg, args);
+	}
+
+	function notYetImplemented() {
+		throw Error("This method has not yet been implemented.");
 	}
 
 	var emptyList = new List();
