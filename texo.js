@@ -87,11 +87,13 @@
 			}
 			else return this.append(other);
 		},
+
 		// Produce a new list with the item added to the end
 		append: variadic(function (items) {
 			return this.concat(items);
 		}),
-		// Produce a new list with the item added to the end
+
+		// Produce a new list with the item added to the beginning
 		prepend: variadic(function (items) {
 			return items.concat(this);
 		}),
@@ -241,15 +243,15 @@
 
 		// Produce a new list with the items from the list sorted 
 		// based on the sort function
-		sort: function (sortFunction) {
-			sortFunction = sortFunction || defaultSort;
-			if (typeof(sortFunction) !== "function") {
-				var key = sortFunction;
-				sortFunction = function (a, b) {
+		sort: function (comparator) {
+			comparator = comparator || defaultSort;
+			if (typeof(comparator) !== "function") {
+				var key = comparator;
+				comparator = function (a, b) {
 					return defaultSort(a[key], b[key]);
 				};
 			}
-			return fromArray(this.toArray().sort(sortFunction));
+			return fromArray(this.toArray().sort(comparator));
 		},
 
 		forEach: function (callback) {
