@@ -40,8 +40,6 @@
 		_depth: 0,
 		// default accessor
 		at: function () {},
-		toString: listToString,
-		inspect: listToString,
 
 		join: function (separator) {
 			separator = separator === undefined ? 
@@ -273,7 +271,7 @@
 
 			var length = this.length;
 			var parent = this.at;
-			var resultArray = Array(length);
+			var resultArray = new Array(length);
 			for (var i = 0; i < length; i++) {
 				resultArray[i] = callback(parent(i), i, this);
 			}
@@ -404,6 +402,23 @@
 			return this.filter(negate(predicate));
 		},
 
+		// count the number of times each value is found, with optional mapping
+		countBy: function (callback) {
+			callback = createMapping(callback);
+
+			var counts = {};
+			var length = this.length;
+			var parent = this.at;
+			var res;
+
+			for (var i = 0; i < length; i++) {
+				res = callback(parent(i));
+				if (counts[res]) counts[res] += 1;
+				else counts[res] = 1;
+			}
+			return counts;
+		},
+
 		// test whether every element passes the predicate function
 		every: function (predicate) {
 			predicate = predicate || defaultFilter;
@@ -501,13 +516,15 @@
 		}),
 
 		sum: reduceMethod(0, function (a, b) {
-			return +a + +b;
+			return (+a) + (+b);
 		}),
 
 		product: reduceMethod(1, function (a, b) {
 			return a * b;
 		}),
 
+		// get n randomly sample items from the list
+		// if n is omitted, a single item is returned
 		sample: function (n) {
 			if (n === undefined) {
 				return this.at(Math.floor(Math.random() * this.length));
@@ -523,6 +540,10 @@
 			return fromArray(sampled);
 		},
 
+		shuffle: function () {
+			return this.sample(this.length);
+		},
+
 		flatten: function (levels) {
 			levels = levels === undefined ?
 				Infinity :
@@ -530,14 +551,18 @@
 
 			return flattenList(this, levels);
 		},
-		
-		shuffle: notYetImplemented,
-		countBy: notYetImplemented,
+
+		zipObject: function (valueList) {
+			return List.zipObject(this, valueList);
+		}
 	};
 
-	function listToString() {
-		return "[" + this.join() + "]";
-	}
+	List.prototype.toString = List.prototype.inspect = function () {
+		var inside = this.length < Infinity ?
+			this.join() :
+			this.slice(0, 5).join() + "... \u221E";
+		return "[" + inside + "]";
+	};
 
 	// test whether two lists are equal
 	function eq(a, b) {
@@ -613,7 +638,7 @@
 		}
 
 		return createList(accessor, length, 1);
-	}
+	};
 
 	List.of = function (length, value) {
 		function accessor(i) {
@@ -622,7 +647,7 @@
 				undefined;
 		}
 		return createList(accessor, length, 1);
-	}
+	};
 
 	List.keys = function (obj) {
 		var keysArray = [];
@@ -630,7 +655,7 @@
 			keysArray.push(key);
 		}
 		return fromArray(keysArray);
-	}
+	};
 
 	List.values = function (obj) {
 		var valueArray = [];
@@ -638,7 +663,7 @@
 			valueArray.push(obj[key]);
 		}
 		return fromArray(valueArray);
-	}
+	};
 
 	function variadic(func) {
 		var normalParams = func.length - 1;
@@ -650,7 +675,7 @@
 			var variadicArgs = args.slice(0, normalParams);
 			variadicArgs.push(fromArray(args.slice(normalParams)));
 			return apply(func, this, variadicArgs);
-		}
+		};
 	}
 	List.variadic = variadic;
 
@@ -672,7 +697,7 @@
 				largest;
 		});
 
-		var resultArray = Array(length);
+		var resultArray = new Array(length);
 		for (var i = 0; i < length; i++) {
 			// call with the ith element from each argument list
 			resultArray[i] = apply(callback, argLists.invoke("at", i));
@@ -714,12 +739,30 @@
 	// a slow version of apply which works on lists of any length
 	// by creating a function using code generation
 	function applyLarge(func, thisArg, args) {
+		var argsString = args.map(function (_, i) {
+			return "args.at(" + i + ")";
+		}).join(", ");
+
 		var applier = new Function("func, thisArg, args", 
-			"return func.call(thisArg, " + 
-			args.map(function (_, i) { return "args.at(" + i + ")" }).join(", ") +
-			"); ");
+			"return func.call(thisArg, " + argsString + "); ");
+
 		return applier(func, thisArg, args);
 	}
+
+	List.zipObject = function (keyList, valueList) {
+		if (!(valueList instanceof List)) {
+			valueList = List.of(Infinity, valueList);
+		} 
+		return keyList.reduce({}, function (obj, key, i) {
+			obj[key] = valueList.at(i);
+			return obj;
+		});
+	};
+
+	List.split = function (str, separator) {
+		separator = separator || "";
+		return fromArray(str.split(separator));
+	};
 
 	// constant for more readable checking of the 
 	// result of indexOf
@@ -755,6 +798,11 @@
 	}
 
 	function createMapping(mapping) {
+		if (mapping === undefined) {
+			return function (value) {
+				return value;
+			};
+		}
 		// treat string/number arguments as pluck operations 
 		return typeof(mapping) === "function" ?
 			mapping :
@@ -774,7 +822,7 @@
 		return function (key) {
 			var items = key ? this.lazyMap(key) : this;
 			return items.reduce(init, reducer);
-		}
+		};
 	}
 
 	// recursively create a function which tests whether a 
@@ -809,7 +857,7 @@
 	function isValue(value) {
 		return function (candidate) {
 			return eq(candidate, value);
-		}
+		};
 	}
 
 	function negate(predicate) {
@@ -819,7 +867,7 @@
 	}
 
 	function notYetImplemented() {
-		throw Error("This method has not yet been implemented.");
+		throw new Error("This method has not yet been implemented.");
 	}
 
 	var emptyList = new List();

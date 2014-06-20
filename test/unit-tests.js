@@ -8,7 +8,7 @@ var log = typeof(window) === "undefined" ?
 	console.log.bind(console) :
 	function printToPage() {
 		var s = Array.prototype.join.call(arguments, " ");
-		document.body.innerHTML += s;
+		document.body.innerHTML += s + "<br>";
 	};
 
 var allPassed = true;
@@ -16,15 +16,12 @@ var testNumber = 0;
 function test(res, expected) {
 	expected = arguments.length < 2 ? true : expected;
 	var num = testNumber++;
-	if (res === expected || 
-		(	res instanceof List && 
+	if ((	res instanceof List && 
 			expected instanceof Array && 
 			same(res, expected)
-		) || (
-			res instanceof List && 
-			expected instanceof List &&
-			List.eq(res, expected)
-		)) 
+		) || 
+		List.eq(res, expected) || 
+		objDeepEqual(res, expected))
 		return true;
 	else {
 		allPassed = false;
@@ -34,9 +31,24 @@ function test(res, expected) {
 	}
 }
 
+function objDeepEqual(a, b) {
+	if (a === b) return true;
+	if (typeof(a) === "object" && typeof(b) === "object") {
+		for (var key in b) {
+			if (!objDeepEqual(a[key], b[key])) {
+				return false;
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
 function same(list, arr) {
 	return list.length === arr.length &&
-		list.every(function (item, i) { return List.eq(item, arr[i]) });
+		list.every(function (item, i) {
+			return List.eq(item, arr[i]);
+		});
 }
 
 // TESTS
@@ -48,10 +60,10 @@ function Point(x, y) {
 }
 Point.prototype.toString = function () {
 	return "(" + this.x + "," + this.y + ")";
-}
+};
 Point.prototype.distanceTo = function (p2) {
 	return Math.sqrt(Math.pow(this.x - p2.x, 2) + Math.pow(this.y - p2.y, 2));
-}
+};
 var a = new Point(3, 4), b = new Point(2, 6), c = new Point(9, 1);
 
 // basic operation
@@ -181,7 +193,9 @@ test(List(c, b, 6).pluck("y"), [1, 6, undefined]);
 // invoke
 test(List(a, b, c).invoke("toString"), ["(3,4)", "(2,6)", "(9,1)"]);
 test(List(c, b, a).invoke("distanceTo", new Point(0, 0)), 
-	map([c, b, a], function (p) { return p.distanceTo(new Point(0, 0))}));
+	map([c, b, a], function (p) {
+		return p.distanceTo(new Point(0, 0));
+	}));
 
 // flatMap
 test(List().flatMap(square), []);
@@ -213,6 +227,12 @@ test(List(true, false, 0, null, undefined).reject(), [false, null, undefined]);
 test(List(a, b, c).reject({x: 9}), [a, b]);
 test(range(10).reject(lessThan(7)), [7, 8, 9]);
 
+// countBy
+test(List().countBy(), {});
+test(range(4).repeat(2).countBy(), {0: 2, 1: 2, 2: 2, 3: 2});
+test(range(20).countBy(lessThan(13)), {"true": 13, "false": 7});
+test(List(a, b, c).countBy("x"), {3: 1, 2: 1, 9: 1});
+
 // every
 test(List().every(), true);
 test(List(1, 5, 3).every(lessThan(6)), true);
@@ -236,7 +256,9 @@ test(range(10).indexOf(3), 3);
 test(range(5).concat(range(5)).indexOf(2, 3), 7);
 test(List(a, b, c).indexOf(a), 0);
 test(List(a, b, c).indexOf(88), -1);
-test(range(4).map(function (i) { return range(i) }).indexOf(range(2)), 2);
+test(range(4).map(function (i) {
+	return range(i);
+}).indexOf(range(2)), 2);
 
 
 // lastIndexOf
@@ -245,7 +267,9 @@ test(range(10).lastIndexOf(6), 6);
 test(range(5).concat(range(5)).lastIndexOf(0, 4), 0);
 test(List(a, b, c, a, c, b).lastIndexOf(c), 4);
 test(List(a, b, c).lastIndexOf(33), -1);
-test(range(4).map(function (i) { return range(i) }).lastIndexOf(range(3)), 3);
+test(range(4).map(function (i) {
+	return range(i);
+}).lastIndexOf(range(3)), 3);
 
 // contains
 test(List().contains(undefined), false);
@@ -281,6 +305,13 @@ test(List(b, c, a).product("y"), 24);
 test(List().sample(), undefined);
 test(range(10).contains(range(10).sample()));
 test(range(5).sample(5).sort(), [0, 1, 2, 3, 4]);
+
+// shuffle
+test(List().shuffle(), []);
+test(range(99).shuffle().sort(), range(99));
+test(List(a, b, c).contains(List(a, b, c).shuffle().at(0)))
+test(List.eq(range(200).shuffle(), range(200)), false);
+test(range(50).shuffle().length, 50);
 
 // flatten
 test(List().flatten(), []);
@@ -318,15 +349,32 @@ test(List.apply(getThis, a, List()), a);
 test(List.apply(Math.max, null, [9, 2, 6, 0]), 9);
 test(List.apply(Math.min, null, [9, 2, 6, 0]), 0);
 
-// List.keys
+// List.zipObject
+test(List.zipObject(List(), List()), {});
+test(List.zipObject(List("a", "b", "c"), range(3)), {a: 0, b: 1, c: 2});
+test(List.zipObject(range(2), List(a)), {0: a, 1: undefined});
+test(List.zipObject(List("foo", "bar", "ding"), 0), {foo: 0, bar: 0, ding: 0});
+test(List.zipObject(range(10)), range(10).zipObject());
+test(List(a, b, c).zipObject(List(a, b, c)), 
+	{"(3,4)": a, "(2,6)": b, "(9,1)": c});
+
+// List.keys and List.values
 test(List.keys(new Point(4, 3)), ["x", "y"]);
 test(List.keys({a: 1, b: 2, "foo bar": 3}), ["a", "b", "foo bar"]);
+test(List.values({}), []);
+test(List.values(a), [3, 4]);
 
 // List.combine
 test(List.combine(List(a, b, c), range(2, 5), "foo", function (p, val, foo) {
 	return foo + val + ": " + (p.x + p.y);
 }), ["foo2: 7", "foo3: 8", "foo4: 10"]);
 test(List.combine(range(4), [8, 0, 2, 1], Math.max), [8, 1, 2, 3]);
+
+// List.split
+test(List.split(""), []);
+test(List.split("abc"), ["a", "b", "c"]);
+test(List.split("foo,bar,ding", ","), ["foo", "bar", "ding"]);
+test(List.split("a (5) b (6) c", /\([0-9]*\)/), ["a ", " b ", " c"]);
 
 if (allPassed) log("All", testNumber, "tests passed");
 
@@ -367,7 +415,7 @@ function foldMap(mapping) {
 		return i === 1 ?
 			List(mapping(mapped), mapping(item)) :
 			mapped.append(mapping(item));
-	}
+	};
 }
 
 function map(arr, func) {
@@ -385,7 +433,7 @@ function inc(value) {
 function lessThan(max) {
 	return function (value) {
 		return value < max;
-	}
+	};
 }
 
 function isAscending(value, i, list) {
