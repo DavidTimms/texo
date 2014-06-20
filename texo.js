@@ -378,7 +378,10 @@
 
 		// Produce a new list with the items that satisfy the predicate function
 		filter: function (predicate) {
-			predicate = predicate || defaultFilter;
+			predicate = predicate === undefined ?
+				defaultFilter :
+				createPredicate(predicate);
+
 			var parent = this.at;
 			var length = this.length;
 			var filtered = [];
@@ -390,6 +393,15 @@
 				}
 			}
 			return fromArray(filtered);
+		},
+
+		// opposite of filter
+		reject: function (predicate) {
+			predicate = predicate === undefined ?
+				defaultFilter :
+				createPredicate(predicate);
+
+			return this.filter(negate(predicate));
 		},
 
 		// test whether every element passes the predicate function
@@ -496,10 +508,29 @@
 			return a * b;
 		}),
 
-		flatten: notYetImplemented,
+		sample: function (n) {
+			if (n === undefined) {
+				return this.at(Math.floor(Math.random() * this.length));
+			}
+			var sampled = [];
+			var remaining = this;
+			var r;
+			for (var i = 0; i < n; i++) {
+				r = Math.floor(Math.random() * remaining.length);
+				sampled.push(remaining.at(r));
+				remaining = remaining.removeAt(r);
+			}
+			return fromArray(sampled);
+		},
+
+		flatten: function (levels) {
+			levels = levels === undefined ?
+				Infinity :
+				levels;
+
+			return flattenList(this, levels);
+		},
 		shuffle: notYetImplemented,
-		sample: notYetImplemented,
-		reject: notYetImplemented,
 		countBy: notYetImplemented,
 	};
 
@@ -600,6 +631,14 @@
 		return fromArray(keysArray);
 	}
 
+	List.values = function (obj) {
+		var valueArray = [];
+		for (var key in obj) if (obj.hasOwnProperty(key)) {
+			valueArray.push(obj[key]);
+		}
+		return fromArray(valueArray);
+	}
+
 	function variadic(func) {
 		var normalParams = func.length - 1;
 		return function () {
@@ -639,6 +678,47 @@
 		}
 		return fromArray(resultArray);
 	});
+
+	// Apply a list of argument to a function
+	// thisArg is optional
+	List.apply = apply;
+	function apply(func, thisArg, args) {
+		// move arguments if thisArg was omitted
+		if (args === undefined) {
+			args = thisArg;
+			thisArg = null;
+		}
+		// convert array to a list
+		if (args instanceof Array) args = fromArray(args);
+
+		switch (args.length) {
+			case 0: return func.call(thisArg);
+			case 1: return func.call(thisArg, args.at(0));
+			case 2: return func.call(thisArg, args.at(0), args.at(1));
+			case 3: return func.call(thisArg, args.at(0), args.at(1), args.at(2));
+			case 4: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
+				args.at(3));
+			case 5: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
+				args.at(3), args.at(4));
+			case 6: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
+				args.at(3), args.at(4), args.at(5));
+			case 7: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
+				args.at(3), args.at(4), args.at(5), args.at(6));
+			case 8: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
+				args.at(3), args.at(4), args.at(5), args.at(6), args.at(7));
+			default: return applyLarge(func, thisArg, args);
+		}
+	}
+
+	// a slow version of apply which works on lists of any length
+	// by creating a function using code generation
+	function applyLarge(func, thisArg, args) {
+		var applier = new Function("func, thisArg, args", 
+			"return func.call(thisArg, " + 
+			args.map(function (_, i) { return "args.at(" + i + ")" }).join(", ") +
+			"); ");
+		return applier(func, thisArg, args);
+	}
 
 	// constant for more readable checking of the 
 	// result of indexOf
@@ -696,45 +776,45 @@
 		}
 	}
 
-	// Apply a list of argument to a function
-	// thisArg is optional
-	List.apply = apply;
-	function apply(func, thisArg, args) {
-		// move arguments if thisArg was omitted
-		if (args === undefined) {
-			args = thisArg;
-			thisArg = null;
-		}
-		// convert array to a list
-		if (args instanceof Array) args = fromArray(args);
+	// recursively create a function which tests whether a 
+	// value matches another, including deep subset object equality
+	function createPredicate(value) {
+		switch (typeof(value)) {
+			case "function": return value;
+			case "object": 
+				if (value instanceof List) return isValue(value);
 
-		switch (args.length) {
-			case 0: return func.call(thisArg);
-			case 1: return func.call(thisArg, args.at(0));
-			case 2: return func.call(thisArg, args.at(0), args.at(1));
-			case 3: return func.call(thisArg, args.at(0), args.at(1), args.at(2));
-			case 4: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
-				args.at(3));
-			case 5: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
-				args.at(3), args.at(4));
-			case 6: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
-				args.at(3), args.at(4), args.at(5));
-			case 7: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
-				args.at(3), args.at(4), args.at(5), args.at(6));
-			case 8: return func.call(thisArg, args.at(0), args.at(1), args.at(2), 
-				args.at(3), args.at(4), args.at(5), args.at(6), args.at(7));
-			default: return applyLarge(func, thisArg, args);
+				var keys = List.keys(value);
+				var tests = List.values(value).map(createPredicate);
+				return function (candidate) {
+					return typeof(candidate) === "object" && 
+						keys.every(function (key, i) {
+							return tests.at(i)(candidate[key]);
+						});
+				};
+			default: return isValue(value);
 		}
 	}
 
-	// a slow version of apply which works on lists of any length
-	// by creating a function using code generation
-	function applyLarge(func, thisArg, args) {
-		var applier = new Function("func, thisArg, args", 
-			"return func.call(thisArg, " + 
-			args.map(function (_, i) { return "args.at(" + i + ")" }).join(", ") +
-			"); ");
-		return applier(func, thisArg, args);
+	function flattenList(list, levels) {
+		if (levels < 1) return list;
+		return list.flatMap(function (item) {
+			return item instanceof List ? 
+				flattenList(item, levels - 1) : 
+				List(item);
+		});
+	}
+
+	function isValue(value) {
+		return function (candidate) {
+			return eq(candidate, value);
+		}
+	}
+
+	function negate(predicate) {
+		return variadic(function (args) {
+			return !apply(predicate, this, args);
+		});
 	}
 
 	function notYetImplemented() {

@@ -36,7 +36,7 @@ function test(res, expected) {
 
 function same(list, arr) {
 	return list.length === arr.length &&
-		arr.every(function (item, i) { return item === list.at(i) });
+		arr.every(function (item, i) { return List.eq(item, list.at(i)) });
 }
 
 // TESTS
@@ -202,6 +202,16 @@ test(List(1, 0, null, 4, false, true, undefined).filter(), [1, 0, 4, true]);
 test(List(34, 23, 0, null, 9, undefined).filter(Boolean), [34, 23, 9]);
 test(List(false, "3", "0").filter(Number), ["3"]);
 test(range(40).filter(lessThan(20)), range(20));
+test(List().filter({a: "foo", b: "bar"}), []);
+test(List(a, b, c).filter({x: 2}), [b]);
+test(List(a, b, c).filter({y: lessThan(5)}), [a, c]);
+test(List({items: List(0, 1, 2)}).filter({items: range(3)}).length, 1);
+
+// reject
+test(List().reject(), []);
+test(List(true, false, 0, null, undefined).reject(), [false, null, undefined]);
+test(List(a, b, c).reject({x: 9}), [a, b]);
+test(range(10).reject(lessThan(7)), [7, 8, 9]);
 
 // every
 test(List().every(), true);
@@ -266,6 +276,18 @@ test(List().product(), 1);
 test(range(6).product(), 0);
 test(range(1, 6).product(), 120);
 test(List(b, c, a).product("y"), 24);
+
+// sample
+test(List().sample(), undefined);
+test(range(10).contains(range(10).sample()));
+test(range(5).sample(5).sort(), [0, 1, 2, 3, 4]);
+
+// flatten
+test(List().flatten(), []);
+test(List(a, List(b, c), List(1, 2, range(3))).flatten(), 
+	[a, b, c, 1, 2, 0, 1, 2]);
+test(List(List(List(1, 2, 3), 4), 5).flatten(1), [List(1, 2, 3), 4, 5]);
+
 
 // List.eq
 test(new List(), List());
