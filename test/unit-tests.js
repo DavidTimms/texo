@@ -36,7 +36,7 @@ function test(res, expected) {
 
 function same(list, arr) {
 	return list.length === arr.length &&
-		arr.every(function (item, i) { return List.eq(item, list.at(i)) });
+		list.every(function (item, i) { return List.eq(item, arr[i]) });
 }
 
 // TESTS
@@ -163,7 +163,7 @@ test((range(6).forEachRight(sideEffectSum), total), (1+2+3+4+5)*2);
 
 // map
 test(List().map(square), []);
-test(range(4).map(square), [0, 1, 2, 3].map(square));
+test(range(4).map(square), [0, 1, 4, 9]);
 test(List("foo","bar","baz").map(exclaim), ["foo!","bar!","baz!"]);
 test(List(a, b, c).map("y"), [4, 6, 1]);
 
@@ -181,7 +181,7 @@ test(List(c, b, 6).pluck("y"), [1, 6, undefined]);
 // invoke
 test(List(a, b, c).invoke("toString"), ["(3,4)", "(2,6)", "(9,1)"]);
 test(List(c, b, a).invoke("distanceTo", new Point(0, 0)), 
-	[c, b, a].map(function (p) { return p.distanceTo(new Point(0, 0))}));
+	map([c, b, a], function (p) { return p.distanceTo(new Point(0, 0))}));
 
 // flatMap
 test(List().flatMap(square), []);
@@ -192,7 +192,7 @@ test(List(4, 6, null, 88, false).flatMap(flatMapFilter), [4, 6, 88]);
 // reduce and reduceRight
 test(List().reduce(55, product), 55);
 test(range(1, 10).reduce(product), range(1, 10).reduceRight(product));
-test(List(a, b, c).reduce(0, sumXs), [a, b, c].reduce(sumXs, 0));
+test(List(a, b, c).reduce(0, sumXs), 14);
 test(range(50).reduce(foldMap(square)), range(50).map(square));
 test(range(15).reduceRight(0, inc), 15);
 
@@ -368,6 +368,14 @@ function foldMap(mapping) {
 			List(mapping(mapped), mapping(item)) :
 			mapped.append(mapping(item));
 	}
+}
+
+function map(arr, func) {
+	var mapped = [];
+	for (var i = 0; i < arr.length; i++) {
+		mapped.push(func(arr[i], i, arr));
+	}
+	return mapped;
 }
 
 function inc(value) {

@@ -530,6 +530,7 @@
 
 			return flattenList(this, levels);
 		},
+		
 		shuffle: notYetImplemented,
 		countBy: notYetImplemented,
 	};
