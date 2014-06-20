@@ -218,6 +218,14 @@
 			return this.at(-1);
 		},
 
+		take: function (n) {
+			return this.slice(0, n);
+		},
+
+		drop: function (n) {
+			return this.slice(n);
+		},
+
 		// Produce a new list which is the reverse of the list
 		reverse: function () {
 			var parent = this.at;
@@ -372,6 +380,32 @@
 				result = reducer(result, parent(i), i, this);
 			}
 			return result;
+		},
+
+		findWhere: function (predicate) {
+			predicate = predicate === undefined ?
+				defaultFilter :
+				createPredicate(predicate);
+
+			for (var i = 0; i < this.length; i++) {
+				if (predicate(this.at(i), i, this)) {
+					return this.at(i);
+				}
+			}
+			return undefined;
+		},
+
+		findLastWhere: function (predicate) {
+			predicate = predicate === undefined ?
+				defaultFilter :
+				createPredicate(predicate);
+
+			for (var i = this.length - 1; i >= 0; i--) {
+				if (predicate(this.at(i), i, this)) {
+					return this.at(i);
+				}
+			}
+			return undefined;
 		},
 
 		// Produce a new list with the items that satisfy the predicate function
@@ -558,6 +592,8 @@
 	};
 
 	List.prototype.toString = List.prototype.inspect = function () {
+		// probably best not to create a string from
+		// the entirety of an infinite list...
 		var inside = this.length < Infinity ?
 			this.join() :
 			this.slice(0, 5).join() + "... \u221E";
@@ -607,7 +643,8 @@
 		return fromArray(items.slice(0));
 	};
 
-	List.range = function (from, to) {
+	List.range = range;
+	function range(from, to) {
 		// handle missing arguments
 		if (to === undefined) {
 			if (from === undefined) {
@@ -638,7 +675,7 @@
 		}
 
 		return createList(accessor, length, 1);
-	};
+	}
 
 	List.of = function (length, value) {
 		function accessor(i) {
@@ -649,6 +686,7 @@
 		return createList(accessor, length, 1);
 	};
 
+	// get a list containing the keys of an object
 	List.keys = function (obj) {
 		var keysArray = [];
 		for (var key in obj) if (obj.hasOwnProperty(key)) {
@@ -657,6 +695,7 @@
 		return fromArray(keysArray);
 	};
 
+	// 
 	List.values = function (obj) {
 		var valueArray = [];
 		for (var key in obj) if (obj.hasOwnProperty(key)) {
@@ -665,6 +704,8 @@
 		return fromArray(valueArray);
 	};
 
+	// pass all tail arguments to the last parameter as a list
+	List.variadic = variadic;
 	function variadic(func) {
 		var normalParams = func.length - 1;
 		return function () {
@@ -677,7 +718,6 @@
 			return apply(func, this, variadicArgs);
 		};
 	}
-	List.variadic = variadic;
 
 	// map a function over the values of multiple lists
 	List.combine = variadic(function (args) {
@@ -748,6 +788,16 @@
 
 		return applier(func, thisArg, args);
 	}
+
+	List.zip = variadic(function (lists) {
+		var length = lists.pluck("length").max();
+
+		if (length < 1) return emptyList;
+
+		return range(length).map(function (i) {
+			return lists.invoke("at", i);
+		});
+	});
 
 	List.zipObject = function (keyList, valueList) {
 		if (!(valueList instanceof List)) {

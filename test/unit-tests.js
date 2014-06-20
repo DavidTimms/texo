@@ -154,6 +154,12 @@ test(range(3).rest().prepend(range(3).first()), range(3));
 test(range(10).last(), range(10).at(-1));
 test(range(10).append(3).last(), 3);
 
+// take and drop
+test(List().take(9), List());
+test(range(100).take(5), range(5));
+test(range(10).drop(5), range(5, 10));
+test(List(a, b, c).drop(0), List(a, b, c));
+
 // reverse
 test(range(4).reverse(), [3, 2, 1, 0]);
 test(range(100).reverse().reverse(), range(100));
@@ -209,6 +215,22 @@ test(range(1, 10).reduce(product), range(1, 10).reduceRight(product));
 test(List(a, b, c).reduce(0, sumXs), 14);
 test(range(50).reduce(foldMap(square)), range(50).map(square));
 test(range(15).reduceRight(0, inc), 15);
+
+// findWhere
+test(List().findWhere(), undefined);
+test(range(9).reverse().findWhere(lessThan(6)), 5);
+test(List(a, b, c).findWhere(function (p) {
+	return p.x > 5;
+}), c);
+test(List(null, undefined, "foo", false, "bar").findWhere(), "foo");
+
+// findLastWhere
+test(List().findLastWhere(), undefined);
+test(range(13).findLastWhere(lessThan(4)), 3);
+test(List(a, b, c).findLastWhere(function (p) {
+	return p.x > 5;
+}), c);
+test(List(null, undefined, "foo", false, "bar").findLastWhere(), "bar");
 
 // filter
 test(List().filter(), []);
@@ -349,6 +371,14 @@ test(List.apply(getThis, a, List()), a);
 test(List.apply(Math.max, null, [9, 2, 6, 0]), 9);
 test(List.apply(Math.min, null, [9, 2, 6, 0]), 0);
 
+// List.zip
+test(List.zip(), []);
+test(List.zip(range(3), List(a, b, c)), [List(0, a), List(1, b), List(2, c)]);
+test(List.zip(range(3), range(2)), [List(0, 0), List(1, 1), List(2, undefined)]);
+test(List.zip(List(a, b, c)), [List(a), List(b), List(c)]);
+test(List.apply(List.zip, List.zip(range(4), range(3, 7))), 
+	[range(4), range(3, 7)]);
+
 // List.zipObject
 test(List.zipObject(List(), List()), {});
 test(List.zipObject(List("a", "b", "c"), range(3)), {a: 0, b: 1, c: 2});
@@ -369,6 +399,11 @@ test(List.combine(List(a, b, c), range(2, 5), "foo", function (p, val, foo) {
 	return foo + val + ": " + (p.x + p.y);
 }), ["foo2: 7", "foo3: 8", "foo4: 10"]);
 test(List.combine(range(4), [8, 0, 2, 1], Math.max), [8, 1, 2, 3]);
+test(List.combine(List("foo", "bar"), List(a, b), range(5, 7), 
+	function (w, p, n) {
+		return List(w, p, n);
+	}),
+[List("foo", a, 5), List("bar", b, 6)]);
 
 // List.split
 test(List.split(""), []);
