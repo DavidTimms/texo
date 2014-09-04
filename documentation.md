@@ -215,3 +215,57 @@ Returns a new list with the same elements as the old list, but sorted based on t
 			return (a.foo + a.bar) - (b.foo + b.bar);
 		});
 	// -> [{foo: 5, bar: 3}, {foo: 2, bar: 9}]
+
+### forEach
+
+#### `list.forEach(callback:Function) -> list`
+
+Calls the callback function on each element in the list, from first to last. The function is passed 3 arguments: the actual element, the index of the element, and the list which `forEach` was called on. This original list is returned unchanged and the return values of the callback function are ignored, so this method is for side-effects only.
+
+This method performs in the same way as the `forEach` method on native JS Arrays.
+
+	var xs = [];
+	List("a", "b", "c").forEach(function (item, index) {
+		xs.push(item, index);
+	});
+	// xs -> ["a", 0, "b", 1, "c", 2]
+
+### forEachRight
+
+#### `list.forEachRight(callback:Function) -> list`
+
+Exactly the same as forEach, except the function is called on the elements in reverse order, from right to left.
+
+	var xs = [];
+	List("a", "b", "c").forEachRight(function (item, index) {
+		xs.push(item, index);
+	});
+	// xs -> ["c", 2, "b", 1, "a", 0]
+
+### map
+
+#### `list.map(callback:Function) -> List`
+
+Returns a new list containing the results of calling the callback function with each element of the list. The function is passed 3 arguments: the actual element, the index of the element, and the list which `map` was called on. 
+
+	List(1, 2, 3, 4).map(function (item, index) {
+		return item + index;
+	});
+	// -> [1, 3, 5, 7]
+
+	List("a", "b", "c").map(function (item, index, source) {
+		return source.join("") + item;
+	});
+	// -> ["abca", "abcb", "abcc"];
+
+### lazyMap
+
+#### `list.lazyMap(callback:Function) -> List`
+
+Acts in the same way as map, but the callback function is applied when an element of the new list is accessed, rather than when the list is created. This reduces memory consumption by avoiding the creation of an intermediate list. `lazyMap` should only ever be used with pure functions, as the function may be called multiple times and the results are not cached. 
+
+	List("foo", "bar", "baz").lazyMap(function (item) {
+		return item.charAt(0);
+	});
+	// -> ["f", "b", "b"]
+	
